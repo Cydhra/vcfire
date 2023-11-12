@@ -311,6 +311,7 @@ impl<'a, const FLAGS: u16> SampleIterator<'a, FLAGS> {
                         unparsed_info: fields
                             .next()
                             .expect("VCF record misses sample info entries")
+                            .trim()
                             .into(),
                     })
                 } else {
@@ -339,6 +340,12 @@ impl<'a, const FLAGS: u16> Iterator for SampleIterator<'a, FLAGS> {
             }
             Err(e) => Some(Err(e)),
         }
+    }
+}
+
+impl SampleInfo {
+    fn samples(&self) -> impl Iterator<Item=&'_ str> {
+        self.unparsed_info.split('\t')
     }
 }
 
