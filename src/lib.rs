@@ -70,7 +70,13 @@ pub struct VcfRecord {
 
 #[derive(Debug)]
 pub struct SampleInfo {
+    pub format: Vec<String>,
     unparsed_info: String,
+}
+
+#[derive(Debug)]
+pub struct Sample<'a> {
+    unparsed_info: &'a str,
 }
 
 pub mod parser_capabilities {
@@ -306,8 +312,8 @@ impl<'a, const FLAGS: u16> SampleIterator<'a, FLAGS> {
             },
             sample_info: if FLAGS & parser_capabilities::SAMPLES != 0 {
                 if header.sample_names.is_some() {
-                    fields.next().expect("VCF record misses FORMAT entry");
                     Some(SampleInfo {
+                        format: fields.next().expect("VCF record misses FORMAT entry").split(':').map(|s| s.into()).collect(),
                         unparsed_info: fields
                             .next()
                             .expect("VCF record misses sample info entries")
@@ -344,8 +350,22 @@ impl<'a, const FLAGS: u16> Iterator for SampleIterator<'a, FLAGS> {
 }
 
 impl SampleInfo {
-    fn samples(&self) -> impl Iterator<Item=&'_ str> {
-        self.unparsed_info.split('\t')
+    pub fn samples(&self) -> impl Iterator<Item=Sample<'_>> {
+        self.unparsed_info
+            .split('\t')
+            .map(|s| Self::parse_sample(s))
+    }
+
+    fn parse_sample(text: &str) -> Sample<'_> {
+        Sample {
+            unparsed_info: text,
+        }
+    }
+}
+
+impl<'a> Sample<'a> {
+    pub fn entries(&self) -> impl Iterator<Item=&'_ str> {
+        self.unparsed_info.split(':')
     }
 }
 
