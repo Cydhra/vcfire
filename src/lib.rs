@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 
 use flate2::read::MultiGzDecoder;
 
@@ -16,6 +16,9 @@ pub struct VcfHeader {
     pub file_format: String,
     pub has_end_column: bool,
     pub sample_names: Option<Vec<String>>,
+
+    // size of the entire header in bytes
+    size: usize,
 }
 
 #[derive(Debug)]
@@ -53,16 +56,16 @@ pub enum NonStandardInfoValue {
 
 #[derive(Debug)]
 pub struct VcfRecord {
-    chromosome: Option<String>,
-    position: Option<u32>,
-    id: Option<Vec<String>>,
-    reference_bases: Option<String>,
-    alternate_bases: Option<Vec<Option<String>>>,
-    quality: Option<f32>,
-    filter_status: Option<String>,
-    info: Option<Vec<Option<InfoEntry>>>,
-    end: Option<u32>,
-    sample_info: Option<SampleInfo>,
+    pub chromosome: Option<String>,
+    pub position: Option<u32>,
+    pub id: Option<Vec<String>>,
+    pub reference_bases: Option<String>,
+    pub alternate_bases: Option<Vec<Option<String>>>,
+    pub quality: Option<f32>,
+    pub filter_status: Option<String>,
+    pub info: Option<Vec<Option<InfoEntry>>>,
+    pub end: Option<u32>,
+    pub sample_info: Option<SampleInfo>,
 }
 
 #[derive(Debug)]
@@ -119,16 +122,10 @@ impl VcfFile {
             Box::new(BufReader::new(File::open(&self.path)?))
         };
 
-        let mut buf = String::new();
-        loop {
-            // todo we could probably do this more efficiently if we recorded the header size during parsing
-            buf.clear();
-            reader.read_line(&mut buf)?;
-
-            if !buf.starts_with("##") {
-                break;
-            }
-        }
+        // we need to skip the header, and sadly GzReader doesnt provide functionality to read without
+        // allocation
+        let mut buf = vec![0; self.header.size];
+        reader.read_exact(&mut buf)?;
 
         Ok(SampleIterator::<FLAGS> {
             reader,
@@ -141,8 +138,9 @@ impl VcfFile {
     /// instance
     fn parse_header<R: BufRead>(reader: &mut R) -> io::Result<VcfHeader> {
         let mut file_version = String::with_capacity(32);
+        let mut header_size = 0;
 
-        reader.read_line(&mut file_version)?;
+        header_size += reader.read_line(&mut file_version)?;
         assert!(
             file_version.starts_with("##fileformat="),
             "VCF file misses file format identifier"
@@ -159,7 +157,7 @@ impl VcfFile {
         let mut buf = String::with_capacity(1024);
         loop {
             buf.clear();
-            reader.read_line(&mut buf)?;
+            header_size += reader.read_line(&mut buf)?;
 
             if !buf.starts_with("##") {
                 break;
@@ -190,6 +188,7 @@ impl VcfFile {
         }
 
         Ok(VcfHeader {
+            size: header_size,
             file_format: file_version,
             has_end_column: end_column_present,
             sample_names: sample_column_names,
