@@ -83,10 +83,9 @@ pub mod parser_capabilities {
     pub const FILTER: u16 = 0b0000000001000000;
     pub const INFO: u16 = 0b0000000010000000;
     pub const END: u16 = 0b0000000100000000;
-    pub const FORMAT: u16 = 0b0000001000000000;
-    pub const SAMPLES: u16 = 0b0000010000000000;
+    pub const SAMPLES: u16 = 0b0000001000000000;
 
-    pub const ALL: u16 = 0b0000011111111111;
+    pub const ALL: u16 = 0b1111111111;
 }
 
 struct SampleIterator<'a, const FLAGS: u16> {
