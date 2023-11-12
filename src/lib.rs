@@ -149,6 +149,12 @@ impl VcfFile {
         );
         file_version.remove_matches("##fileformat=");
 
+        // trim newline
+        debug_assert!(file_version.pop() == Some('\n'));
+        if file_version.ends_with('\r') {
+            file_version.pop();
+        }
+
         // TODO parse rest of meta fields
         let mut buf = String::with_capacity(1024);
         loop {
