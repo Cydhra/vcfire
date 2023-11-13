@@ -1,5 +1,9 @@
 #![feature(string_remove_matches)]
+#![feature(slice_internals)]
 
+extern crate core;
+
+use core::slice::memchr::memchr;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
@@ -351,8 +355,7 @@ impl<'a, const FLAGS: u16> Iterator for SampleIterator<'a, FLAGS> {
 
 impl SampleInfo {
     pub fn samples(&self) -> impl Iterator<Item=Sample<'_>> {
-        self.unparsed_info
-            .split('\t')
+        fast_split(&self.unparsed_info, '\t' as u8)
             .map(|s| Self::parse_sample(s))
     }
 
@@ -396,5 +399,34 @@ mod tests {
                     .count()
             });
         println!("read {} cells in {:?}", cells, start.elapsed());
+    }
+}
+
+struct FastSplitIter<'a> {
+    text: &'a str,
+    delim: u8,
+    start: usize,
+}
+
+impl<'a> Iterator for FastSplitIter<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start >= self.text.len() {
+            return None;
+        }
+
+        let end = memchr(self.delim, &self.text.as_bytes()[self.start..]).unwrap_or(self.text.len() - self.start);
+        let result = &self.text[self.start..self.start + end];
+        self.start += end + 1;
+        Some(result)
+    }
+}
+
+pub fn fast_split(text: &str, delim: u8) -> impl Iterator<Item=&str> {
+    FastSplitIter {
+        text,
+        delim,
+        start: 0,
     }
 }
