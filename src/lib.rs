@@ -63,7 +63,7 @@ pub struct VcfRecord {
     pub id: Option<Vec<String>>,
     pub reference_bases: String,
     pub alternate_bases: Vec<Option<String>>,
-    pub quality: f32,
+    pub quality: Option<f32>,
     pub filter_status: String,
     pub info: Vec<Option<InfoEntry>>,
     pub end: Option<u32>,
@@ -217,7 +217,7 @@ impl<'a> SampleIterator<'a> {
                 .next()
                 .expect("VCF record misses QUAL entry")
                 .parse()
-                .expect("VCF record has malformed QUAL entry"),
+                .ok(),
             filter_status: fields
                 .next()
                 .expect("VCF record misses FILTER entry")
@@ -228,12 +228,12 @@ impl<'a> SampleIterator<'a> {
                 .split(';')
                 .map(|info| match info {
                     "." => None,
-                    info => None, // todo parse
+                    _info => None, // todo parse info entries
                 })
                 .collect(),
             end: if header.has_end_column {
                 fields.next().expect("");
-                None // todo parse
+                None // todo parse end column
             } else {
                 None
             },
@@ -287,7 +287,7 @@ impl SampleInfo {
 
 impl<'a> Sample<'a> {
     pub fn entries(&self) -> impl Iterator<Item=&'_ str> {
-        self.unparsed_info.split(':')
+        fast_split(&self.unparsed_info, ':' as u8)
     }
 }
 
