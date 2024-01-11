@@ -1,8 +1,6 @@
 #![feature(string_remove_matches)]
 #![feature(slice_internals)]
 
-extern crate core;
-
 use core::slice::memchr::memchr;
 use std::fs::File;
 use std::io;
