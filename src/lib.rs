@@ -286,9 +286,24 @@ impl SampleInfo {
 }
 
 impl<'a> Sample<'a> {
+    /// Get an iterator over all entries in the sample info field. The order of the entries is
+    /// defined by the FORMAT column.
     pub fn entries(&self) -> impl Iterator<Item=&'_ str> {
         fast_split(&self.unparsed_info, ':' as u8)
     }
+
+    /// Extract the genotype information if present. If the sample has no genotype information, None
+    /// is returned.
+    pub fn get_genotype(&self) -> Option<&'_ str> {
+        if self.unparsed_info.len() > 0 {
+            self.entries().nth(0)
+        } else {
+            None
+        }
+    }
+
+    // TODO implement the rest of the sample info fields. Those aren't at fixed positions, and thus their position must
+    //  be determined by the FORMAT column
 }
 
 #[cfg(test)]
