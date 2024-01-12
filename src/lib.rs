@@ -156,7 +156,7 @@ impl VcfFile {
             if !buf.starts_with("##") {
                 break;
             } else {
-                let pair = buf[2..].splitn(2, '=').collect::<Vec<_>>();
+                let pair = buf[2..].trim().splitn(2, '=').collect::<Vec<_>>();
                 header_lines.push((pair[0].to_string(), pair[1].to_string()));
             }
         }
