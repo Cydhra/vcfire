@@ -18,6 +18,7 @@ pub struct VcfHeader {
     pub file_format: String,
     pub has_end_column: bool,
     pub sample_names: Option<Vec<String>>,
+    pub header_lines: Vec<String>,
 
     // size of the entire header in bytes
     size: usize,
@@ -145,7 +146,8 @@ impl VcfFile {
             file_version.pop();
         }
 
-        // TODO parse rest of meta fields
+        let mut header_lines = Vec::new();
+
         let mut buf = String::with_capacity(1024);
         loop {
             buf.clear();
@@ -153,6 +155,8 @@ impl VcfFile {
 
             if !buf.starts_with("##") {
                 break;
+            } else {
+                header_lines.push(buf.clone());
             }
         }
 
@@ -184,6 +188,7 @@ impl VcfFile {
             file_format: file_version,
             has_end_column: end_column_present,
             sample_names: sample_column_names,
+            header_lines,
         })
     }
 }
